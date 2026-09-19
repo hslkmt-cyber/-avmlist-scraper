@@ -1,69 +1,33 @@
-import re
 import requests
-from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 
-BASE = "https://www.avmlist.com/"
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; AVMListResearch/1.0)"
+URL = "https://www.ayd.org.tr/alisveris-merkezleri"
+
+headers = {
+    "User-Agent": "Mozilla/5.0"
 }
 
-def fetch(url):
-    r = requests.get(url, headers=HEADERS, timeout=30)
-    r.raise_for_status()
-    return r.text
+r = requests.get(URL, headers=headers, timeout=30)
 
-def extract_links(html):
-    soup = BeautifulSoup(html, "html.parser")
-    links = []
+print("STATUS:", r.status_code)
+print("URL:", r.url)
+print("LENGTH:", len(r.text))
 
-    for a in soup.find_all("a", href=True):
-        u = urljoin(BASE, a["href"])
+with open("ayd_page.html", "w", encoding="utf-8") as f:
+    f.write(r.text)
 
-        if urlparse(u).netloc.endswith("avmlist.com"):
-            links.append(u)
+soup = BeautifulSoup(r.text, "html.parser")
 
-    return sorted(set(links))
+print("\nLINKS:")
+for a in soup.find_all("a", href=True):
+    text = a.get_text(" ", strip=True)
+    href = a["href"]
 
-def main():
-    pages = [
-        BASE,
-        BASE + "avmler/",
-        BASE + "avm/",
-        BASE + "sitemap.xml",
-        BASE + "sitemap_index.xml",
-        BASE + "wp-sitemap.xml",
-        BASE + "robots.txt",
-    ]
+    if text:
+        print(text[:100], "=>", href)
 
-    all_links = set()
-    report = []
+print("\nSCRIPTS:")
+for s in soup.find_all("script", src=True):
+    print(s["src"])
 
-    for url in pages:
-        try:
-            html = fetch(url)
-            links = extract_links(html)
-            all_links.update(links)
-            report.append(f"{url} -> {len(links)} links")
-        except Exception as e:
-            report.append(f"{url} -> ERROR: {e}")
 
-    avm_links = sorted(
-        u.rstrip("/") + "/"
-        for u in all_links
-        if re.match(
-            r"^https?://(?:www\.)?avmlist\.com/avm/[^/]+/?$",
-            u
-        )
-    )
-
-    with open("discovery.txt", "w", encoding="utf-8") as f:
-        f.write("\n".join(report))
-        f.write("\n\nAVM LINKS\n")
-        f.write("\n".join(avm_links))
-        f.write(f"\n\nCOUNT={len(avm_links)}\n")
-
-    print(f"Found {len(avm_links)} AVM URLs")
-
-if __name__ == "__main__":
-    main()
