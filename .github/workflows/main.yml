@@ -1,0 +1,29 @@
+name: AVM List Scraper
+
+on:
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repo'yu indir
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Gerekli paketleri kur
+        run: pip install requests beautifulsoup4
+
+      - name: Scraper çalıştır
+        run: python scraper.py
+
+      - name: Sonucu yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: avmlist-discovery
+          path: discovery.txt
